@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>회의록 자동 정리</title>
+<style>
+  :root {
+    --bg: #10151c;
+    --panel: #171e27;
+    --panel-border: #2a3542;
+    --text: #e7edf3;
+    --sub: #8fa1b3;
+    --accent: #3ea6ff;
+    --accent-dim: #1f5b8a;
+    --danger: #ff5d5d;
+    --ok: #37c98f;
+    --radius: 10px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 20px 16px 60px;
+    max-width: 640px;
+    margin: 0 auto;
+  }
+  h1 {
+    font-size: 19px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin: 4px 0 2px;
+  }
+  .sub {
+    color: var(--sub);
+    font-size: 13px;
+    margin-bottom: 20px;
+  }
+  .step {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 14px;
+  }
+  .step-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: var(--text);
+  }
+  .step-num {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--accent-dim);
+    color: #cfe8ff;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  input[type="text"], input[type="date"], textarea {
+    width: 100%;
+    background: #0d1218;
+    border: 1px solid var(--panel-border);
+    color: var(--text);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 14px;
+    font-family: inherit;
+    resize: vertical;
+  }
+  textarea { min-height: 120px; line-height: 1.5; }
+  label {
+    display: block;
+    font-size: 12px;
+    color: var(--sub);
+    margin-bottom: 6px;
+  }
+  .field { margin-bottom: 12px; }
+  .row { display: flex; gap: 8px; }
+  button {
+    border: none;
+    border-radius: 8px;
+    padding: 11px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .btn-primary { background: var(--accent); color: #06121d; }
+  .btn-primary:disabled { background: #2a3542; color: #6b7887; cursor: not-allowed; }
+  .btn-danger { background: var(--danger); color: #2a0000; }
+  .btn-secondary { background: transparent; border: 1px solid var(--panel-border); color: var(--text); }
+  .btn-full { width: 100%; }
+  .rec-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+  .rec-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--panel-border);
+  }
+  .rec-dot.live { background: var(--danger); box-shadow: 0 0 0 4px rgba(255,93,93,0.15); animation: pulse 1.4s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+  .rec-status { font-size: 13px; color: var(--sub); }
+  .hint { font-size: 12px; color: var(--sub); margin-top: 8px; line-height: 1.5; }
+  .result-link {
+    display: inline-block;
+    margin-top: 10px;
+    color: var(--accent);
+    font-size: 14px;
+    word-break: break-all;
+  }
+  .status-msg { font-size: 13px; margin-top: 8px; }
+  .status-msg.error { color: var(--danger); }
+  .status-msg.ok { color: var(--ok); }
+  .disabled-section { opacity: 0.45; pointer-events: none; }
+</style>
+</head>
+<body>
+
+  <h1>회의록 자동 정리</h1>
+  <div class="sub">녹음 → 텍스트 변환 → Claude 정리 → 컨플루언스 게시</div>
+
+  <!-- STEP 1: 녹음 -->
+  <div class="step">
+    <div class="step-title"><span class="step-num">1</span> 녹음</div>
+    <div class="rec-row">
+      <div class="rec-dot" id="recDot"></div>
+      <div class="rec-status" id="recStatus">대기 중</div>
+    </div>
+    <div class="row">
+      <button class="btn-primary btn-full" id="startBtn">녹음 시작</button>
+      <button class="btn-danger btn-full" id="stopBtn" disabled>녹음 정지</button>
+    </div>
+    <div class="hint" id="supportHint"></div>
+  </div>
+
+  <!-- STEP 2: 전사 텍스트 확인/수정 -->
+  <div class="step">
+    <div class="step-title"><span class="step-num">2</span> 인식된 내용 확인 &amp; 수정</div>
+    <div class="field">
+      <textarea id="transcriptBox" placeholder="녹음을 시작하면 여기에 실시간으로 텍스트가 나타납니다. 잘못 인식된 부분은 직접 수정하세요."></textarea>
+    </div>
+    <button class="btn-secondary btn-full" id="formatBtn">회의록 양식으로 정리하기 (Claude)</button>
+    <div class="status-msg" id="formatStatus"></div>
+  </div>
+
+  <!-- STEP 3: 정리된 회의록 확인/수정 + 게시 -->
+  <div class="step" id="publishSection">
+    <div class="step-title"><span class="step-num">3</span> 회의록 확인 후 컨플루언스 게시</div>
+    <div class="field">
+      <label for="titleInput">페이지 제목</label>
+      <input type="text" id="titleInput" placeholder="예: 2026-07-07 주간 회의록">
+    </div>
+    <div class="field">
+      <label for="draftBox">정리된 회의록 (필요시 직접 수정 가능)</label>
+      <textarea id="draftBox" style="min-height: 220px;" placeholder="정리하기 버튼을 누르면 여기에 결과가 표시됩니다."></textarea>
+    </div>
+    <button class="btn-primary btn-full" id="publishBtn">컨플루언스에 게시하기</button>
+    <div class="status-msg" id="publishStatus"></div>
+  </div>
+
+<script>
+  const startBtn = document.getElementById('startBtn');
+  const stopBtn = document.getElementById('stopBtn');
+  const recDot = document.getElementById('recDot');
+  const recStatus = document.getElementById('recStatus');
+  const supportHint = document.getElementById('supportHint');
+  const transcriptBox = document.getElementById('transcriptBox');
+  const formatBtn = document.getElementById('formatBtn');
+  const formatStatus = document.getElementById('formatStatus');
+  const titleInput = document.getElementById('titleInput');
+  const draftBox = document.getElementById('draftBox');
+  const publishBtn = document.getElementById('publishBtn');
+  const publishStatus = document.getElementById('publishStatus');
+
+  // 기본 제목: 오늘 날짜
+  const today = new Date().toISOString().slice(0, 10);
+  titleInput.value = today + ' 회의록';
+
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let recognition = null;
+  let userStopped = true;   // 사용자가 직접 정지를 눌렀는지 여부
+  let finalText = '';       // 지금까지 확정된 전사 텍스트
+
+  if (!SpeechRecognition) {
+    supportHint.textContent = '이 브라우저는 음성 인식을 지원하지 않습니다. 안드로이드는 크롬, 아이폰은 사파리를 사용해 주세요.';
+    startBtn.disabled = true;
+  } else {
+    supportHint.textContent = '아이폰 사파리는 간혹 인식이 끊길 수 있어요. 끊기면 자동으로 이어서 인식합니다. 중간중간 텍스트를 확인해 주세요.';
+  }
+
+  function createRecognition() {
+    const r = new SpeechRecognition();
+    r.lang = 'ko-KR';
+    r.continuous = true;
+    r.interimResults = true;
+
+    r.onresult = (event) => {
+      let interim = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const chunk = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          finalText += chunk + ' ';
+        } else {
+          interim += chunk;
+        }
+      }
+      transcriptBox.value = finalText + interim;
+    };
+
+    r.onerror = (event) => {
+      // no-speech, network 등은 무시하고 자동 재시작 로직에 맡김
+      console.warn('speech recognition error:', event.error);
+    };
+
+    r.onend = () => {
+      if (!userStopped) {
+        // 사용자가 정지를 누르지 않았는데 끝났다면 (iOS 등) 바로 재시작
+        try {
+          recognition = createRecognition();
+          recognition.start();
+        } catch (e) {
+          console.warn('재시작 실패', e);
+        }
+      } else {
+        recDot.classList.remove('live');
+        recStatus.textContent = '정지됨';
+      }
+    };
+
+    return r;
+  }
+
+  startBtn.addEventListener('click', () => {
+    if (!SpeechRecognition) return;
+    userStopped = false;
+    recognition = createRecognition();
+    recognition.start();
+    recDot.classList.add('live');
+    recStatus.textContent = '녹음 중...';
+    startBtn.disabled = true;
+    stopBtn.disabled = false;
+  });
+
+  stopBtn.addEventListener('click', () => {
+    userStopped = true;
+    if (recognition) recognition.stop();
+    startBtn.disabled = false;
+    stopBtn.disabled = true;
+  });
+
+  formatBtn.addEventListener('click', async () => {
+    const text = transcriptBox.value.trim();
+    if (!text) {
+      formatStatus.textContent = '먼저 녹음하거나 텍스트를 입력해 주세요.';
+      formatStatus.className = 'status-msg error';
+      return;
+    }
+    formatBtn.disabled = true;
+    formatStatus.textContent = 'Claude가 회의록을 정리하고 있습니다...';
+    formatStatus.className = 'status-msg';
+    try {
+      const res = await fetch('/api/format', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ transcript: text, date: today })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || '정리 중 오류가 발생했습니다.');
+      draftBox.value = data.formatted;
+      formatStatus.textContent = '정리 완료. 아래에서 확인 후 게시하세요.';
+      formatStatus.className = 'status-msg ok';
+    } catch (err) {
+      formatStatus.textContent = '오류: ' + err.message;
+      formatStatus.className = 'status-msg error';
+    } finally {
+      formatBtn.disabled = false;
+    }
+  });
+
+  publishBtn.addEventListener('click', async () => {
+    const title = titleInput.value.trim();
+    const content = draftBox.value.trim();
+    if (!title || !content) {
+      publishStatus.textContent = '제목과 회의록 내용을 모두 입력해 주세요.';
+      publishStatus.className = 'status-msg error';
+      return;
+    }
+    publishBtn.disabled = true;
+    publishStatus.textContent = '컨플루언스에 게시 중...';
+    publishStatus.className = 'status-msg';
+    try {
+      const res = await fetch('/api/publish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, content })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || '게시 중 오류가 발생했습니다.');
+      publishStatus.innerHTML = '게시 완료! <a class="result-link" href="' + data.url + '" target="_blank">페이지 열기</a>';
+      publishStatus.className = 'status-msg ok';
+    } catch (err) {
+      publishStatus.textContent = '오류: ' + err.message;
+      publishStatus.className = 'status-msg error';
+    } finally {
+      publishBtn.disabled = false;
+    }
+  });
+</script>
+</body>
+</html>
