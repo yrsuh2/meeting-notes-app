@@ -27,17 +27,8 @@
     max-width: 640px;
     margin: 0 auto;
   }
-  h1 {
-    font-size: 19px;
-    font-weight: 700;
-    letter-spacing: -0.01em;
-    margin: 4px 0 2px;
-  }
-  .sub {
-    color: var(--sub);
-    font-size: 13px;
-    margin-bottom: 20px;
-  }
+  h1 { font-size: 19px; font-weight: 700; letter-spacing: -0.01em; margin: 4px 0 2px; }
+  .sub { color: var(--sub); font-size: 13px; margin-bottom: 20px; }
   .step {
     background: var(--panel);
     border: 1px solid var(--panel-border);
@@ -46,80 +37,43 @@
     margin-bottom: 14px;
   }
   .step-title {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 14px;
-    font-weight: 600;
-    margin-bottom: 12px;
-    color: var(--text);
+    display: flex; align-items: center; gap: 8px;
+    font-size: 14px; font-weight: 600; margin-bottom: 12px; color: var(--text);
   }
   .step-num {
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: var(--accent-dim);
-    color: #cfe8ff;
-    font-size: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: var(--accent-dim); color: #cfe8ff; font-size: 12px;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
   }
-  input[type="text"], input[type="date"], textarea {
-    width: 100%;
-    background: #0d1218;
-    border: 1px solid var(--panel-border);
-    color: var(--text);
-    border-radius: 8px;
-    padding: 10px 12px;
-    font-size: 14px;
-    font-family: inherit;
-    resize: vertical;
+  input[type="text"], textarea {
+    width: 100%; background: #0d1218; border: 1px solid var(--panel-border);
+    color: var(--text); border-radius: 8px; padding: 10px 12px;
+    font-size: 14px; font-family: inherit; resize: vertical;
   }
   textarea { min-height: 120px; line-height: 1.5; }
-  label {
-    display: block;
-    font-size: 12px;
-    color: var(--sub);
-    margin-bottom: 6px;
-  }
+  label { display: block; font-size: 12px; color: var(--sub); margin-bottom: 6px; }
   .field { margin-bottom: 12px; }
   .row { display: flex; gap: 8px; }
   button {
-    border: none;
-    border-radius: 8px;
-    padding: 11px 16px;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    font-family: inherit;
+    border: none; border-radius: 8px; padding: 11px 16px;
+    font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit;
   }
   .btn-primary { background: var(--accent); color: #06121d; }
   .btn-primary:disabled { background: #2a3542; color: #6b7887; cursor: not-allowed; }
   .btn-danger { background: var(--danger); color: #2a0000; }
+  .btn-danger:disabled { background: #2a3542; color: #6b7887; cursor: not-allowed; }
   .btn-secondary { background: transparent; border: 1px solid var(--panel-border); color: var(--text); }
   .btn-full { width: 100%; }
   .rec-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
-  .rec-dot {
-    width: 10px; height: 10px; border-radius: 50%;
-    background: var(--panel-border);
-  }
+  .rec-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--panel-border); }
   .rec-dot.live { background: var(--danger); box-shadow: 0 0 0 4px rgba(255,93,93,0.15); animation: pulse 1.4s infinite; }
   @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
   .rec-status { font-size: 13px; color: var(--sub); }
   .hint { font-size: 12px; color: var(--sub); margin-top: 8px; line-height: 1.5; }
-  .result-link {
-    display: inline-block;
-    margin-top: 10px;
-    color: var(--accent);
-    font-size: 14px;
-    word-break: break-all;
-  }
+  .result-link { display: inline-block; margin-top: 10px; color: var(--accent); font-size: 14px; word-break: break-all; }
   .status-msg { font-size: 13px; margin-top: 8px; }
   .status-msg.error { color: var(--danger); }
   .status-msg.ok { color: var(--ok); }
-  .disabled-section { opacity: 0.45; pointer-events: none; }
 </style>
 </head>
 <body>
@@ -138,14 +92,17 @@
       <button class="btn-primary btn-full" id="startBtn">녹음 시작</button>
       <button class="btn-danger btn-full" id="stopBtn" disabled>녹음 정지</button>
     </div>
-    <div class="hint" id="supportHint"></div>
+    <div class="hint">
+      녹음 중 약 50초마다 자동으로 구간을 나눠 서버로 전송하고 텍스트로 변환합니다. 안드로이드/아이폰 모두 동일하게 동작합니다.
+      아이폰에서는 화면이 꺼지거나 다른 앱으로 전환하면 녹음이 중단될 수 있으니, 회의 중에는 화면을 켜둔 상태로 유지해 주세요.
+    </div>
   </div>
 
   <!-- STEP 2: 전사 텍스트 확인/수정 -->
   <div class="step">
     <div class="step-title"><span class="step-num">2</span> 인식된 내용 확인 &amp; 수정</div>
     <div class="field">
-      <textarea id="transcriptBox" placeholder="녹음을 시작하면 여기에 실시간으로 텍스트가 나타납니다. 잘못 인식된 부분은 직접 수정하세요."></textarea>
+      <textarea id="transcriptBox" placeholder="녹음 중 약 50초 간격으로 여기에 텍스트가 이어서 추가됩니다. 잘못 인식된 부분은 직접 수정하세요."></textarea>
     </div>
     <button class="btn-secondary btn-full" id="formatBtn">회의록 양식으로 정리하기 (Claude)</button>
     <div class="status-msg" id="formatStatus"></div>
@@ -171,7 +128,6 @@
   const stopBtn = document.getElementById('stopBtn');
   const recDot = document.getElementById('recDot');
   const recStatus = document.getElementById('recStatus');
-  const supportHint = document.getElementById('supportHint');
   const transcriptBox = document.getElementById('transcriptBox');
   const formatBtn = document.getElementById('formatBtn');
   const formatStatus = document.getElementById('formatStatus');
@@ -180,80 +136,203 @@
   const publishBtn = document.getElementById('publishBtn');
   const publishStatus = document.getElementById('publishStatus');
 
-  // 기본 제목: 오늘 날짜
   const today = new Date().toISOString().slice(0, 10);
   titleInput.value = today + ' 회의록';
 
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  let recognition = null;
-  let userStopped = true;   // 사용자가 직접 정지를 눌렀는지 여부
-  let finalText = '';       // 지금까지 확정된 전사 텍스트
+  const TARGET_SAMPLE_RATE = 16000;
+  const CHUNK_SECONDS = 50; // Google STT 동기 API 1분 제한보다 여유있게 설정
 
-  if (!SpeechRecognition) {
-    supportHint.textContent = '이 브라우저는 음성 인식을 지원하지 않습니다. 안드로이드는 크롬, 아이폰은 사파리를 사용해 주세요.';
-    startBtn.disabled = true;
-  } else {
-    supportHint.textContent = '아이폰 사파리는 간혹 인식이 끊길 수 있어요. 끊기면 자동으로 이어서 인식합니다. 중간중간 텍스트를 확인해 주세요.';
+  let audioCtx = null;
+  let sourceNode = null;
+  let processorNode = null;
+  let silentGain = null;
+  let mediaStream = null;
+  let isRecording = false;
+  let chunkNumber = 0;
+  let pendingSamples = []; // Float32Array 조각들 (native sample rate)
+  let samplesSinceLastChunk = 0;
+
+  function downsampleTo16k(float32Arrays, inputSampleRate) {
+    let totalLength = 0;
+    for (const arr of float32Arrays) totalLength += arr.length;
+    const merged = new Float32Array(totalLength);
+    let offset = 0;
+    for (const arr of float32Arrays) { merged.set(arr, offset); offset += arr.length; }
+
+    if (inputSampleRate === TARGET_SAMPLE_RATE) return merged;
+
+    const ratio = inputSampleRate / TARGET_SAMPLE_RATE;
+    const newLength = Math.round(merged.length / ratio);
+    const result = new Float32Array(newLength);
+    for (let i = 0; i < newLength; i++) {
+      result[i] = merged[Math.round(i * ratio)] || 0;
+    }
+    return result;
   }
 
-  function createRecognition() {
-    const r = new SpeechRecognition();
-    r.lang = 'ko-KR';
-    r.continuous = true;
-    r.interimResults = true;
-
-    r.onresult = (event) => {
-      let interim = '';
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const chunk = event.results[i][0].transcript;
-        if (event.results[i].isFinal) {
-          finalText += chunk + ' ';
-        } else {
-          interim += chunk;
-        }
-      }
-      transcriptBox.value = finalText + interim;
-    };
-
-    r.onerror = (event) => {
-      // no-speech, network 등은 무시하고 자동 재시작 로직에 맡김
-      console.warn('speech recognition error:', event.error);
-    };
-
-    r.onend = () => {
-      if (!userStopped) {
-        // 사용자가 정지를 누르지 않았는데 끝났다면 (iOS 등) 바로 재시작
-        try {
-          recognition = createRecognition();
-          recognition.start();
-        } catch (e) {
-          console.warn('재시작 실패', e);
-        }
-      } else {
-        recDot.classList.remove('live');
-        recStatus.textContent = '정지됨';
-      }
-    };
-
-    return r;
+  function floatTo16BitPCM(float32Array) {
+    const buffer = new ArrayBuffer(float32Array.length * 2);
+    const view = new DataView(buffer);
+    let offset = 0;
+    for (let i = 0; i < float32Array.length; i++, offset += 2) {
+      const s = Math.max(-1, Math.min(1, float32Array[i]));
+      view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+    }
+    return buffer;
   }
 
-  startBtn.addEventListener('click', () => {
-    if (!SpeechRecognition) return;
-    userStopped = false;
-    recognition = createRecognition();
-    recognition.start();
+  function encodeWav(pcm16Buffer, sampleRate) {
+    const numChannels = 1;
+    const bitsPerSample = 16;
+    const byteRate = sampleRate * numChannels * bitsPerSample / 8;
+    const blockAlign = numChannels * bitsPerSample / 8;
+    const dataSize = pcm16Buffer.byteLength;
+    const buffer = new ArrayBuffer(44 + dataSize);
+    const view = new DataView(buffer);
+
+    function writeString(offset, str) {
+      for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
+    }
+
+    writeString(0, 'RIFF');
+    view.setUint32(4, 36 + dataSize, true);
+    writeString(8, 'WAVE');
+    writeString(12, 'fmt ');
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true); // PCM
+    view.setUint16(22, numChannels, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, byteRate, true);
+    view.setUint16(32, blockAlign, true);
+    view.setUint16(34, bitsPerSample, true);
+    writeString(36, 'data');
+    view.setUint32(40, dataSize, true);
+    new Uint8Array(buffer, 44).set(new Uint8Array(pcm16Buffer));
+
+    return buffer;
+  }
+
+  function arrayBufferToBase64(buffer) {
+    let binary = '';
+    const bytes = new Uint8Array(buffer);
+    const chunkSize = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
+    }
+    return btoa(binary);
+  }
+
+  async function sendChunk(float32Arrays, inputSampleRate) {
+    chunkNumber++;
+    const thisChunk = chunkNumber;
+    recStatus.textContent = `녹음 중... (${thisChunk}번째 구간 인식 중)`;
+    try {
+      const downsampled = downsampleTo16k(float32Arrays, inputSampleRate);
+      const pcm16 = floatTo16BitPCM(downsampled);
+      const wavBuffer = encodeWav(pcm16, TARGET_SAMPLE_RATE);
+      const audioBase64 = arrayBufferToBase64(wavBuffer);
+
+      const res = await fetch('/api/transcribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          audioBase64,
+          encoding: 'LINEAR16',
+          sampleRateHertz: TARGET_SAMPLE_RATE,
+          languageCode: 'ko-KR'
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        console.error('transcribe error', data);
+        transcriptBox.value += `\n[${thisChunk}번째 구간 인식 실패: ${data.detail || data.error}]\n`;
+        return;
+      }
+      if (data.transcript) {
+        transcriptBox.value += (transcriptBox.value ? ' ' : '') + data.transcript;
+      }
+    } catch (err) {
+      transcriptBox.value += `\n[${thisChunk}번째 구간 전송 오류: ${err.message}]\n`;
+    } finally {
+      if (isRecording) recStatus.textContent = '녹음 중...';
+    }
+  }
+
+  async function startRecording() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      alert('이 브라우저는 마이크 녹음을 지원하지 않습니다.');
+      return;
+    }
+    mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const AC = window.AudioContext || window.webkitAudioContext;
+    audioCtx = new AC();
+    await audioCtx.resume(); // iOS는 사용자 제스처 안에서 resume 필요
+
+    sourceNode = audioCtx.createMediaStreamSource(mediaStream);
+    processorNode = audioCtx.createScriptProcessor(4096, 1, 1);
+    silentGain = audioCtx.createGain();
+    silentGain.gain.value = 0; // 스피커로 소리가 나가지 않도록 음소거
+
+    pendingSamples = [];
+    samplesSinceLastChunk = 0;
+    const nativeRate = audioCtx.sampleRate;
+    const samplesPerChunk = nativeRate * CHUNK_SECONDS;
+
+    processorNode.onaudioprocess = (e) => {
+      const input = e.inputBuffer.getChannelData(0);
+      pendingSamples.push(new Float32Array(input));
+      samplesSinceLastChunk += input.length;
+
+      if (samplesSinceLastChunk >= samplesPerChunk) {
+        const toSend = pendingSamples;
+        pendingSamples = [];
+        samplesSinceLastChunk = 0;
+        sendChunk(toSend, nativeRate);
+      }
+    };
+
+    sourceNode.connect(processorNode);
+    processorNode.connect(silentGain);
+    silentGain.connect(audioCtx.destination);
+
+    isRecording = true;
     recDot.classList.add('live');
     recStatus.textContent = '녹음 중...';
     startBtn.disabled = true;
     stopBtn.disabled = false;
+  }
+
+  async function stopRecording() {
+    isRecording = false;
+    startBtn.disabled = false;
+    stopBtn.disabled = true;
+    recDot.classList.remove('live');
+    recStatus.textContent = '마지막 구간 처리 중...';
+
+    if (processorNode) processorNode.disconnect();
+    if (sourceNode) sourceNode.disconnect();
+    if (silentGain) silentGain.disconnect();
+    if (mediaStream) mediaStream.getTracks().forEach((t) => t.stop());
+
+    if (pendingSamples.length > 0) {
+      const nativeRate = audioCtx.sampleRate;
+      const toSend = pendingSamples;
+      pendingSamples = [];
+      await sendChunk(toSend, nativeRate);
+    }
+
+    if (audioCtx) await audioCtx.close();
+    recStatus.textContent = '정지됨';
+  }
+
+  startBtn.addEventListener('click', () => {
+    startRecording().catch((err) => {
+      alert('마이크 접근 오류: ' + err.message);
+    });
   });
 
   stopBtn.addEventListener('click', () => {
-    userStopped = true;
-    if (recognition) recognition.stop();
-    startBtn.disabled = false;
-    stopBtn.disabled = true;
+    stopRecording();
   });
 
   formatBtn.addEventListener('click', async () => {
