@@ -6,16 +6,17 @@
 <title>회의록 자동 정리</title>
 <style>
   :root {
-    --bg: #10151c;
-    --panel: #171e27;
-    --panel-border: #2a3542;
-    --text: #e7edf3;
-    --sub: #8fa1b3;
-    --accent: #3ea6ff;
-    --accent-dim: #1f5b8a;
-    --danger: #ff5d5d;
-    --ok: #37c98f;
-    --radius: 10px;
+    --bg: #f5f6f8;
+    --card: #ffffff;
+    --border: #e2e5ea;
+    --text: #1f2937;
+    --sub: #6b7280;
+    --accent: #2563eb;
+    --accent-dark: #1d4ed8;
+    --accent-bg: #eff4ff;
+    --danger: #dc2626;
+    --ok: #16a34a;
+    --radius: 12px;
   }
   * { box-sizing: border-box; }
   body {
@@ -23,144 +24,233 @@
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
     background: var(--bg);
     color: var(--text);
-    padding: 20px 16px 60px;
-    max-width: 640px;
-    margin: 0 auto;
   }
-  h1 { font-size: 19px; font-weight: 700; letter-spacing: -0.01em; margin: 4px 0 2px; }
-  .sub { color: var(--sub); font-size: 13px; margin-bottom: 20px; }
-  .step {
-    background: var(--panel);
-    border: 1px solid var(--panel-border);
+  .page { max-width: 1100px; margin: 0 auto; padding: 32px 20px 70px; }
+  header { margin-bottom: 20px; }
+  header h1 { font-size: 22px; font-weight: 700; margin: 0 0 4px; letter-spacing: -0.01em; }
+  header p { color: var(--sub); font-size: 14px; margin: 0; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 18px; }
+  @media (max-width: 860px) { .grid-2 { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
     border-radius: var(--radius);
-    padding: 16px;
-    margin-bottom: 14px;
+    padding: 20px;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.03);
+    margin-bottom: 18px;
   }
-  .step-title {
-    display: flex; align-items: center; gap: 8px;
-    font-size: 14px; font-weight: 600; margin-bottom: 12px; color: var(--text);
-  }
-  .step-num {
-    width: 20px; height: 20px; border-radius: 50%;
-    background: var(--accent-dim); color: #cfe8ff; font-size: 12px;
-    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-  }
+  .card-title { font-size: 15px; font-weight: 700; margin: 0 0 14px; }
+
+  label { display: block; font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+  .field { margin-bottom: 14px; }
+  .field:last-child { margin-bottom: 0; }
+
   input[type="text"], textarea {
-    width: 100%; background: #0d1218; border: 1px solid var(--panel-border);
-    color: var(--text); border-radius: 8px; padding: 10px 12px;
-    font-size: 14px; font-family: inherit; resize: vertical;
+    width: 100%;
+    background: #fff;
+    border: 1px solid #d1d5db;
+    color: var(--text);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 14px;
+    font-family: inherit;
+    resize: vertical;
   }
-  textarea { min-height: 120px; line-height: 1.5; }
-  label { display: block; font-size: 12px; color: var(--sub); margin-bottom: 6px; }
-  .field { margin-bottom: 12px; }
-  .row { display: flex; gap: 8px; }
-  button {
-    border: none; border-radius: 8px; padding: 11px 16px;
-    font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit;
+  input[type="text"]:focus, textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-bg);
   }
-  .btn-primary { background: var(--accent); color: #06121d; }
-  .btn-primary:disabled { background: #2a3542; color: #6b7887; cursor: not-allowed; }
-  .btn-danger { background: var(--danger); color: #2a0000; }
-  .btn-danger:disabled { background: #2a3542; color: #6b7887; cursor: not-allowed; }
-  .btn-secondary { background: transparent; border: 1px solid var(--panel-border); color: var(--text); }
-  .btn-full { width: 100%; }
-  .rec-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
-  .rec-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--panel-border); }
-  .rec-dot.live { background: var(--danger); box-shadow: 0 0 0 4px rgba(255,93,93,0.15); animation: pulse 1.4s infinite; }
+  textarea#memoInput { min-height: 130px; }
+  textarea#attendeesInput { min-height: 70px; }
+  textarea#transcriptBox { min-height: 200px; line-height: 1.6; }
+  textarea#draftBox { min-height: 380px; line-height: 1.6; font-family: ui-monospace, "SFMono-Regular", Menlo, monospace; font-size: 13px; }
+
+  .btn-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
+  .btn-row:last-of-type { margin-bottom: 0; }
+  button.btn {
+    border: none;
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    flex: 1 1 auto;
+    min-width: 140px;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover:not(:disabled) { background: var(--accent-dark); }
+  .btn-primary:disabled { background: #cbd5e1; color: #94a3b8; cursor: not-allowed; }
+  .btn-outline { background: #fff; border: 1px solid #d1d5db; color: var(--text); }
+  .btn-outline:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+  .btn-outline:disabled { color: #b0b7c3; border-color: #e5e7eb; cursor: not-allowed; }
+
+  .hint { font-size: 12px; color: var(--sub); margin: -4px 0 10px; }
+
+  .status-line { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: #d1d5db; flex-shrink: 0; }
+  .dot.live { background: var(--danger); box-shadow: 0 0 0 4px rgba(220,38,38,0.15); animation: pulse 1.4s infinite; }
   @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
-  .rec-status { font-size: 13px; color: var(--sub); }
-  .hint { font-size: 12px; color: var(--sub); margin-top: 8px; line-height: 1.5; }
-  .result-link { display: inline-block; margin-top: 10px; color: var(--accent); font-size: 14px; word-break: break-all; }
-  .status-msg { font-size: 13px; margin-top: 8px; }
+  #recStatus { font-size: 13px; color: var(--sub); }
+  #recStatus.ok { color: var(--ok); font-weight: 600; }
+  #recStatus.error { color: var(--danger); font-weight: 600; }
+
+  .status-msg { font-size: 13px; margin-top: 10px; min-height: 16px; }
   .status-msg.error { color: var(--danger); }
   .status-msg.ok { color: var(--ok); }
+  .result-link { display: inline-block; margin-left: 6px; color: var(--accent); font-weight: 600; }
 </style>
 </head>
 <body>
 
-  <h1>회의록 자동 정리</h1>
-  <div class="sub">녹음 → 텍스트 변환 → Claude 정리 → 컨플루언스 게시</div>
+<div class="page">
+  <header>
+    <h1>회의록 자동 정리</h1>
+    <p>녹음 또는 파일 업로드로 회의 내용을 텍스트화하고 회의록으로 정리합니다.</p>
+  </header>
 
-  <!-- STEP 1: 녹음 -->
-  <div class="step">
-    <div class="step-title"><span class="step-num">1</span> 녹음</div>
-    <div class="rec-row">
-      <div class="rec-dot" id="recDot"></div>
-      <div class="rec-status" id="recStatus">대기 중</div>
-    </div>
-    <div class="row">
-      <button class="btn-primary btn-full" id="startBtn">녹음 시작</button>
-      <button class="btn-danger btn-full" id="stopBtn" disabled>녹음 정지</button>
-    </div>
-    <div class="hint">
-      녹음 중 약 50초마다 자동으로 구간을 나눠 서버로 전송하고 텍스트로 변환합니다. 안드로이드/아이폰 모두 동일하게 동작합니다.
-      아이폰에서는 화면이 꺼지거나 다른 앱으로 전환하면 녹음이 중단될 수 있으니, 회의 중에는 화면을 켜둔 상태로 유지해 주세요.
-    </div>
+  <div class="grid-2">
+    <section class="card">
+      <h2 class="card-title">회의 음성 입력</h2>
+
+      <div class="btn-row">
+        <button class="btn btn-primary" id="startBtn">녹음 시작</button>
+        <button class="btn btn-outline" id="stopBtn" disabled>녹음 정지</button>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-outline" id="uploadTriggerBtn">녹음파일 업로드</button>
+        <input type="file" id="fileInput" accept="audio/*" hidden>
+      </div>
+      <p class="hint">wav, mp3, m4a, webm 등 브라우저에서 재생 가능한 음성파일</p>
+
+      <div class="btn-row">
+        <button class="btn btn-outline" id="downloadRecordingBtn" disabled>녹음파일 다운로드</button>
+        <button class="btn btn-outline" id="downloadTranscriptBtn">STT 텍스트 다운로드</button>
+      </div>
+
+      <div class="status-line">
+        <span class="dot" id="recDot"></span>
+        <span id="recStatus">대기 중</span>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2 class="card-title">회의 정보 입력</h2>
+      <div class="field">
+        <label for="attendeesInput">참석자</label>
+        <textarea id="attendeesInput" placeholder="예) 서유리, 김OO, 박OO"></textarea>
+      </div>
+      <div class="field">
+        <label for="memoInput">회의 중 메모</label>
+        <textarea id="memoInput" placeholder="결정사항, 담당자, 확인 필요사항 등을 메모하세요."></textarea>
+      </div>
+    </section>
   </div>
 
-  <!-- STEP 2: 전사 텍스트 확인/수정 -->
-  <div class="step">
-    <div class="step-title"><span class="step-num">2</span> 인식된 내용 확인 &amp; 수정</div>
+  <section class="card">
+    <h2 class="card-title">STT 변환 텍스트</h2>
     <div class="field">
-      <textarea id="transcriptBox" placeholder="녹음 중 약 50초 간격으로 여기에 텍스트가 이어서 추가됩니다. 잘못 인식된 부분은 직접 수정하세요."></textarea>
+      <textarea id="transcriptBox" placeholder="녹음 또는 파일 업로드 시 텍스트가 여기에 표시됩니다. 직접 수정할 수 있습니다."></textarea>
     </div>
-    <button class="btn-secondary btn-full" id="formatBtn">회의록 양식으로 정리하기 (Claude)</button>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="formatBtn" disabled>회의록 양식으로 정리하기</button>
+    </div>
     <div class="status-msg" id="formatStatus"></div>
-  </div>
+  </section>
 
-  <!-- STEP 3: 정리된 회의록 확인/수정 + 게시 -->
-  <div class="step" id="publishSection">
-    <div class="step-title"><span class="step-num">3</span> 회의록 확인 후 컨플루언스 게시</div>
+  <section class="card">
+    <h2 class="card-title">회의록 확인 &amp; 게시</h2>
     <div class="field">
       <label for="titleInput">페이지 제목</label>
-      <input type="text" id="titleInput" placeholder="예: 2026-07-07 주간 회의록">
+      <input type="text" id="titleInput" placeholder="정리 후 추천 제목이 자동 입력됩니다.">
     </div>
     <div class="field">
-      <label for="draftBox">정리된 회의록 (필요시 직접 수정 가능)</label>
-      <textarea id="draftBox" style="min-height: 220px;" placeholder="정리하기 버튼을 누르면 여기에 결과가 표시됩니다."></textarea>
+      <label for="draftBox">정리된 회의록</label>
+      <textarea id="draftBox" placeholder="정리하기 버튼을 누르면 여기에 결과가 표시됩니다."></textarea>
     </div>
-    <button class="btn-primary btn-full" id="publishBtn">컨플루언스에 게시하기</button>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="publishBtn">컨플루언스에 게시하기</button>
+    </div>
     <div class="status-msg" id="publishStatus"></div>
-  </div>
+  </section>
+</div>
 
 <script>
+  // ---- DOM 참조 ----
   const startBtn = document.getElementById('startBtn');
   const stopBtn = document.getElementById('stopBtn');
+  const uploadTriggerBtn = document.getElementById('uploadTriggerBtn');
+  const fileInput = document.getElementById('fileInput');
+  const downloadRecordingBtn = document.getElementById('downloadRecordingBtn');
+  const downloadTranscriptBtn = document.getElementById('downloadTranscriptBtn');
   const recDot = document.getElementById('recDot');
   const recStatus = document.getElementById('recStatus');
+
+  const attendeesInput = document.getElementById('attendeesInput');
+  const memoInput = document.getElementById('memoInput');
+
   const transcriptBox = document.getElementById('transcriptBox');
   const formatBtn = document.getElementById('formatBtn');
   const formatStatus = document.getElementById('formatStatus');
+
   const titleInput = document.getElementById('titleInput');
   const draftBox = document.getElementById('draftBox');
   const publishBtn = document.getElementById('publishBtn');
   const publishStatus = document.getElementById('publishStatus');
 
-  const today = new Date().toISOString().slice(0, 10);
-  titleInput.value = today + ' 회의록';
-
+  // ---- 상수 ----
   const TARGET_SAMPLE_RATE = 16000;
   const CHUNK_SECONDS = 50; // Google STT 동기 API 1분 제한보다 여유있게 설정
 
+  // ---- 상태 ----
   let audioCtx = null;
   let sourceNode = null;
   let processorNode = null;
   let silentGain = null;
   let mediaStream = null;
   let isRecording = false;
+  let isFileConverting = false;
+  let pendingTranscribeCount = 0;
   let chunkNumber = 0;
-  let pendingSamples = []; // Float32Array 조각들 (native sample rate)
-  let samplesSinceLastChunk = 0;
 
-  function downsampleTo16k(float32Arrays, inputSampleRate) {
+  let pendingSamples = [];        // STT 청크 전송용 (native rate, 청크마다 초기화)
+  let samplesSinceLastChunk = 0;
+  let fullRecordingSamples = [];  // 전체 녹음 다운로드용 (native rate, 녹음 끝날 때까지 누적)
+  let recordingNativeRate = null;
+  let recordingWavBlob = null;
+
+  // ---- 날짜/시간 헬퍼 ----
+  function pad(n) { return String(n).padStart(2, '0'); }
+  function todayDate() {
+    const d = new Date();
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  }
+  function nowDateTime() {
+    const d = new Date();
+    return `${todayDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+  function nowStamp() {
+    const d = new Date();
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}-${pad(d.getHours())}-${pad(d.getMinutes())}`;
+  }
+
+  // ---- 오디오 처리 헬퍼 ----
+  function mergeFloat32Arrays(arrays) {
     let totalLength = 0;
-    for (const arr of float32Arrays) totalLength += arr.length;
+    for (const a of arrays) totalLength += a.length;
     const merged = new Float32Array(totalLength);
     let offset = 0;
-    for (const arr of float32Arrays) { merged.set(arr, offset); offset += arr.length; }
+    for (const a of arrays) { merged.set(a, offset); offset += a.length; }
+    return merged;
+  }
 
+  function downsampleTo16k(float32Arrays, inputSampleRate) {
+    const merged = mergeFloat32Arrays(float32Arrays);
     if (inputSampleRate === TARGET_SAMPLE_RATE) return merged;
-
     const ratio = inputSampleRate / TARGET_SAMPLE_RATE;
     const newLength = Math.round(merged.length / ratio);
     const result = new Float32Array(newLength);
@@ -199,7 +289,7 @@
     writeString(8, 'WAVE');
     writeString(12, 'fmt ');
     view.setUint32(16, 16, true);
-    view.setUint16(20, 1, true); // PCM
+    view.setUint16(20, 1, true);
     view.setUint16(22, numChannels, true);
     view.setUint32(24, sampleRate, true);
     view.setUint32(28, byteRate, true);
@@ -222,10 +312,38 @@
     return btoa(binary);
   }
 
-  async function sendChunk(float32Arrays, inputSampleRate) {
+  function downloadBlob(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  // ---- 상태 표시 ----
+  function setStatus(text, kind) {
+    recStatus.textContent = text;
+    recStatus.classList.remove('ok', 'error');
+    recDot.classList.remove('live');
+    if (kind === 'recording') recDot.classList.add('live');
+    if (kind === 'done') recStatus.classList.add('ok');
+    if (kind === 'error') recStatus.classList.add('error');
+  }
+
+  function updateFormatButtonState() {
+    formatBtn.disabled = isRecording || isFileConverting || pendingTranscribeCount > 0 || !transcriptBox.value.trim();
+  }
+  transcriptBox.addEventListener('input', updateFormatButtonState);
+
+  // ---- STT 청크 전송 (공통: 실시간 녹음 / 파일 업로드 모두 사용) ----
+  async function sendChunk(float32Arrays, inputSampleRate, label) {
+    pendingTranscribeCount++;
+    updateFormatButtonState();
     chunkNumber++;
     const thisChunk = chunkNumber;
-    recStatus.textContent = `녹음 중... (${thisChunk}번째 구간 인식 중)`;
     try {
       const downsampled = downsampleTo16k(float32Arrays, inputSampleRate);
       const pcm16 = floatTo16BitPCM(downsampled);
@@ -245,19 +363,23 @@
       const data = await res.json();
       if (!res.ok) {
         console.error('transcribe error', data);
-        transcriptBox.value += `\n[${thisChunk}번째 구간 인식 실패: ${data.detail || data.error}]\n`;
+        transcriptBox.value += `\n[${label ? label + ' ' : ''}${thisChunk}번째 구간 인식 실패: ${data.detail || data.error}]\n`;
+        setStatus(`오류: ${thisChunk}번째 구간 변환 실패`, 'error');
         return;
       }
       if (data.transcript) {
-        transcriptBox.value += (transcriptBox.value ? ' ' : '') + data.transcript;
+        transcriptBox.value += (transcriptBox.value.trim() ? ' ' : '') + data.transcript;
       }
     } catch (err) {
       transcriptBox.value += `\n[${thisChunk}번째 구간 전송 오류: ${err.message}]\n`;
+      setStatus(`오류: ${thisChunk}번째 구간 전송 실패`, 'error');
     } finally {
-      if (isRecording) recStatus.textContent = '녹음 중...';
+      pendingTranscribeCount--;
+      updateFormatButtonState();
     }
   }
 
+  // ---- 실시간 녹음 (Web Audio API) ----
   async function startRecording() {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       alert('이 브라우저는 마이크 녹음을 지원하지 않습니다.');
@@ -266,28 +388,35 @@
     mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
     const AC = window.AudioContext || window.webkitAudioContext;
     audioCtx = new AC();
-    await audioCtx.resume(); // iOS는 사용자 제스처 안에서 resume 필요
+    await audioCtx.resume();
 
     sourceNode = audioCtx.createMediaStreamSource(mediaStream);
     processorNode = audioCtx.createScriptProcessor(4096, 1, 1);
     silentGain = audioCtx.createGain();
-    silentGain.gain.value = 0; // 스피커로 소리가 나가지 않도록 음소거
+    silentGain.gain.value = 0;
 
     pendingSamples = [];
     samplesSinceLastChunk = 0;
-    const nativeRate = audioCtx.sampleRate;
-    const samplesPerChunk = nativeRate * CHUNK_SECONDS;
+    fullRecordingSamples = [];
+    recordingWavBlob = null;
+    downloadRecordingBtn.disabled = true;
+    chunkNumber = 0;
+
+    recordingNativeRate = audioCtx.sampleRate;
+    const samplesPerChunk = recordingNativeRate * CHUNK_SECONDS;
 
     processorNode.onaudioprocess = (e) => {
       const input = e.inputBuffer.getChannelData(0);
-      pendingSamples.push(new Float32Array(input));
+      const copy = new Float32Array(input);
+      pendingSamples.push(copy);
+      fullRecordingSamples.push(new Float32Array(input));
       samplesSinceLastChunk += input.length;
 
       if (samplesSinceLastChunk >= samplesPerChunk) {
         const toSend = pendingSamples;
         pendingSamples = [];
         samplesSinceLastChunk = 0;
-        sendChunk(toSend, nativeRate);
+        sendChunk(toSend, recordingNativeRate);
       }
     };
 
@@ -296,18 +425,18 @@
     silentGain.connect(audioCtx.destination);
 
     isRecording = true;
-    recDot.classList.add('live');
-    recStatus.textContent = '녹음 중...';
+    setStatus('녹음 중', 'recording');
     startBtn.disabled = true;
     stopBtn.disabled = false;
+    updateFormatButtonState();
   }
 
   async function stopRecording() {
     isRecording = false;
     startBtn.disabled = false;
     stopBtn.disabled = true;
-    recDot.classList.remove('live');
-    recStatus.textContent = '마지막 구간 처리 중...';
+    setStatus('마지막 구간 변환 중', 'processing');
+    updateFormatButtonState();
 
     if (processorNode) processorNode.disconnect();
     if (sourceNode) sourceNode.disconnect();
@@ -315,26 +444,106 @@
     if (mediaStream) mediaStream.getTracks().forEach((t) => t.stop());
 
     if (pendingSamples.length > 0) {
-      const nativeRate = audioCtx.sampleRate;
       const toSend = pendingSamples;
       pendingSamples = [];
-      await sendChunk(toSend, nativeRate);
+      await sendChunk(toSend, recordingNativeRate);
+    }
+
+    if (fullRecordingSamples.length > 0) {
+      const merged = mergeFloat32Arrays(fullRecordingSamples);
+      const pcm16 = floatTo16BitPCM(merged);
+      const wavBuffer = encodeWav(pcm16, recordingNativeRate);
+      recordingWavBlob = new Blob([wavBuffer], { type: 'audio/wav' });
+      downloadRecordingBtn.disabled = false;
     }
 
     if (audioCtx) await audioCtx.close();
-    recStatus.textContent = '정지됨';
+    setStatus('변환 완료', 'done');
+    updateFormatButtonState();
   }
 
   startBtn.addEventListener('click', () => {
     startRecording().catch((err) => {
+      setStatus('오류: 마이크 접근 실패', 'error');
       alert('마이크 접근 오류: ' + err.message);
     });
   });
+  stopBtn.addEventListener('click', () => { stopRecording(); });
 
-  stopBtn.addEventListener('click', () => {
-    stopRecording();
+  // ---- 녹음파일 다운로드 ----
+  downloadRecordingBtn.addEventListener('click', () => {
+    if (!recordingWavBlob) return;
+    downloadBlob(recordingWavBlob, `meeting-recording-${nowStamp()}.wav`);
   });
 
+  // ---- STT 텍스트 다운로드 ----
+  downloadTranscriptBtn.addEventListener('click', () => {
+    const text = transcriptBox.value.trim();
+    if (!text) {
+      formatStatus.textContent = '다운로드할 텍스트가 없습니다.';
+      formatStatus.className = 'status-msg error';
+      return;
+    }
+    const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+    downloadBlob(blob, `meeting-transcript-${nowStamp()}.txt`);
+  });
+
+  // ---- 녹음파일 업로드 후 STT 변환 ----
+  uploadTriggerBtn.addEventListener('click', () => fileInput.click());
+
+  fileInput.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    fileInput.value = '';
+    if (!file) return;
+    await handleFileUpload(file);
+  });
+
+  async function handleFileUpload(file) {
+    isFileConverting = true;
+    updateFormatButtonState();
+    setStatus('파일 변환 중', 'processing');
+
+    let decodeCtx = null;
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const AC = window.AudioContext || window.webkitAudioContext;
+      decodeCtx = new AC();
+
+      let audioBuffer;
+      try {
+        audioBuffer = await decodeCtx.decodeAudioData(arrayBuffer);
+      } catch (decodeErr) {
+        throw new Error('오디오 디코딩 실패 (' + decodeErr.message + ')');
+      }
+
+      const numCh = audioBuffer.numberOfChannels;
+      const length = audioBuffer.length;
+      const mono = new Float32Array(length);
+      for (let ch = 0; ch < numCh; ch++) {
+        const chData = audioBuffer.getChannelData(ch);
+        for (let i = 0; i < length; i++) mono[i] += chData[i] / numCh;
+      }
+
+      const nativeRate = audioBuffer.sampleRate;
+      const samplesPerChunk = Math.floor(nativeRate * CHUNK_SECONDS);
+
+      for (let start = 0; start < mono.length; start += samplesPerChunk) {
+        const segment = mono.subarray(start, Math.min(start + samplesPerChunk, mono.length));
+        await sendChunk([segment], nativeRate, '업로드 파일');
+      }
+
+      setStatus('변환 완료', 'done');
+    } catch (err) {
+      setStatus('오류: ' + err.message, 'error');
+      transcriptBox.value += `\n[파일 변환 오류: ${err.message}]\n`;
+    } finally {
+      if (decodeCtx) { try { await decodeCtx.close(); } catch (e) {} }
+      isFileConverting = false;
+      updateFormatButtonState();
+    }
+  }
+
+  // ---- 회의록 정리 (Claude) ----
   formatBtn.addEventListener('click', async () => {
     const text = transcriptBox.value.trim();
     if (!text) {
@@ -349,21 +558,29 @@
       const res = await fetch('/api/format', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ transcript: text, date: today })
+        body: JSON.stringify({
+          transcript: text,
+          participants: attendeesInput.value.trim(),
+          memo: memoInput.value.trim(),
+          date: todayDate(),
+          dateTime: nowDateTime()
+        })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || '정리 중 오류가 발생했습니다.');
-      draftBox.value = data.formatted;
+      titleInput.value = data.title || (todayDate() + ' 회의록');
+      draftBox.value = data.formatted || data.minutes || '';
       formatStatus.textContent = '정리 완료. 아래에서 확인 후 게시하세요.';
       formatStatus.className = 'status-msg ok';
     } catch (err) {
       formatStatus.textContent = '오류: ' + err.message;
       formatStatus.className = 'status-msg error';
     } finally {
-      formatBtn.disabled = false;
+      updateFormatButtonState();
     }
   });
 
+  // ---- Confluence 게시 ----
   publishBtn.addEventListener('click', async () => {
     const title = titleInput.value.trim();
     const content = draftBox.value.trim();
@@ -392,6 +609,8 @@
       publishBtn.disabled = false;
     }
   });
+
+  updateFormatButtonState();
 </script>
 </body>
 </html>
