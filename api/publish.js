@@ -1,5 +1,5 @@
 // POST /api/publish
-// body: { title: string, content: string }  <- content는 format.js가 만든 순수 텍스트 회의록
+// body: { title: string, content: string }  <- content는 format.js가 만든 새 회의록 템플릿(마크다운 유사)
 // 필요한 환경변수:
 //   CONFLUENCE_BASE_URL   예: https://your-domain.atlassian.net
 //   CONFLUENCE_EMAIL      Confluence 로그인 이메일
@@ -13,10 +13,43 @@ function escapeHtml(str) {
     .replace(/>/g, '&gt;');
 }
 
-// format.js가 만든 순수 텍스트 회의록을 Confluence storage format(HTML 유사)으로 변환
+function parseTableRow(line) {
+  return line
+    .trim()
+    .replace(/^\|/, '')
+    .replace(/\|$/, '')
+    .split('|')
+    .map((cell) => cell.trim());
+}
+
+function isTableSeparator(line) {
+  return /^\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?$/.test(line.trim());
+}
+
+function renderTable(tableLines) {
+  if (tableLines.length === 0) return '';
+  let idx = 0;
+  const headerCells = parseTableRow(tableLines[idx]);
+  idx++;
+  if (idx < tableLines.length && isTableSeparator(tableLines[idx])) idx++;
+
+  let html = '<table><tbody>\n<tr>' +
+    headerCells.map((c) => `<th>${escapeHtml(c)}</th>`).join('') +
+    '</tr>\n';
+
+  for (; idx < tableLines.length; idx++) {
+    const cells = parseTableRow(tableLines[idx]);
+    html += '<tr>' + cells.map((c) => `<td>${escapeHtml(c)}</td>`).join('') + '</tr>\n';
+  }
+  html += '</tbody></table>\n';
+  return html;
+}
+
+// format.js가 만든 마크다운 유사 회의록 템플릿을 Confluence storage format(HTML 유사)으로 변환
+// 지원: "# " -> h2, "## " -> h3, "- " -> ul/li, "| ... |" 표 -> table, 그 외 -> p
 function textToStorageHtml(text) {
   const lines = text.split('\n');
-  let html = '<h2>회의록</h2>\n';
+  let html = '';
   let inList = false;
 
   const closeListIfOpen = () => {
@@ -26,24 +59,37 @@ function textToStorageHtml(text) {
     }
   };
 
-  for (let rawLine of lines) {
-    const line = rawLine.trim();
+  for (let i = 0; i < lines.length; i++) {
+    const raw = lines[i];
+    const line = raw.trim();
 
     if (!line) {
       closeListIfOpen();
       continue;
     }
 
-    if (line.startsWith('날짜:') || line.startsWith('참석자:')) {
+    if (line.startsWith('## ')) {
       closeListIfOpen();
-      const [label, ...rest] = line.split(':');
-      html += `<p><strong>${escapeHtml(label)}:</strong> ${escapeHtml(rest.join(':').trim())}</p>\n`;
+      html += `<h3>${escapeHtml(line.slice(3).trim())}</h3>\n`;
       continue;
     }
 
-    if (line === '안건' || line === '결정사항' || line === '액션 아이템') {
+    if (line.startsWith('# ')) {
       closeListIfOpen();
-      html += `<h3>${escapeHtml(line)}</h3>\n`;
+      html += `<h2>${escapeHtml(line.slice(2).trim())}</h2>\n`;
+      continue;
+    }
+
+    if (line.startsWith('|')) {
+      closeListIfOpen();
+      const tableLines = [];
+      let j = i;
+      while (j < lines.length && lines[j].trim().startsWith('|')) {
+        tableLines.push(lines[j].trim());
+        j++;
+      }
+      html += renderTable(tableLines);
+      i = j - 1;
       continue;
     }
 
@@ -56,7 +102,7 @@ function textToStorageHtml(text) {
       continue;
     }
 
-    // 그 외 일반 텍스트 줄
+    // 일반 문단
     closeListIfOpen();
     html += `<p>${escapeHtml(line)}</p>\n`;
   }
