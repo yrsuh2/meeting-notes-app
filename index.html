@@ -344,6 +344,19 @@
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
+  // 서버에서 정리되더라도 화면 표시 단계에서 한 번 더 방어적으로 정리
+  // - "화자 undefined:" 라벨 제거
+  // - "▁" 문자 제거 (공백으로 치환)
+  // - 화자 N: 라벨과 줄바꿈은 그대로 유지
+  function cleanTranscriptForDisplay(text) {
+    return String(text || "")
+      .replace(/화자 undefined:\s*/g, "")
+      .replace(/▁/g, " ")
+      .replace(/[ \t]+/g, " ")
+      .replace(/\n\s+/g, "\n")
+      .trim();
+  }
+
   // ---- 상태 표시 ----
   function setStatus(text, kind) {
     recStatus.textContent = text;
@@ -389,7 +402,10 @@
         return;
       }
       if (data.transcript) {
-        transcriptBox.value += (transcriptBox.value.trim() ? ' ' : '') + data.transcript;
+        const cleanedTranscript = cleanTranscriptForDisplay(data.transcript);
+        if (cleanedTranscript) {
+          transcriptBox.value += (transcriptBox.value ? "\n" : "") + cleanedTranscript;
+        }
       }
     } catch (err) {
       transcriptBox.value += `\n[${thisChunk}번째 구간 전송 오류: ${err.message}]\n`;
