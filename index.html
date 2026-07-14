@@ -87,6 +87,28 @@
   .btn-outline { background: #fff; border: 1px solid #d1d5db; color: var(--text); }
   .btn-outline:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
   .btn-outline:disabled { color: #b0b7c3; border-color: #e5e7eb; cursor: not-allowed; }
+  .btn-muted { background: #f3f4f6; border: 1px solid #e5e7eb; color: #374151; }
+  .btn-muted:hover:not(:disabled) { background: #e9eaed; }
+  .btn-muted:disabled { color: #b0b7c3; background: #f3f4f6; cursor: not-allowed; }
+
+  .btn-link {
+    background: none;
+    border: none;
+    color: var(--sub);
+    font-size: 12px;
+    font-weight: 500;
+    text-decoration: underline;
+    cursor: pointer;
+    padding: 4px 6px;
+    flex: 0 0 auto;
+    min-width: auto;
+    align-self: center;
+  }
+  .btn-link:hover:not(:disabled) { color: var(--accent); }
+  .btn-link:disabled { color: #cbd5e1; text-decoration: none; cursor: not-allowed; }
+
+  .card-header-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; gap: 10px; }
+  .card-header-row .card-title { margin: 0; }
 
   .hint { font-size: 12px; color: var(--sub); margin: -4px 0 10px; }
 
@@ -119,18 +141,14 @@
       <div class="btn-row">
         <button class="btn btn-primary" id="startBtn">녹음 시작</button>
         <button class="btn btn-outline" id="stopBtn" disabled>녹음 정지</button>
+        <button class="btn-link" id="downloadRecordingBtn" disabled>녹음파일 다운로드</button>
       </div>
 
       <div class="btn-row">
-        <button class="btn btn-outline" id="uploadTriggerBtn">녹음파일 업로드</button>
+        <button class="btn btn-muted" id="uploadTriggerBtn">녹음파일 업로드</button>
         <input type="file" id="fileInput" accept="audio/*" hidden>
       </div>
       <p class="hint">wav, mp3, m4a, webm 등 브라우저에서 재생 가능한 음성파일</p>
-
-      <div class="btn-row">
-        <button class="btn btn-outline" id="downloadRecordingBtn" disabled>녹음파일 다운로드</button>
-        <button class="btn btn-outline" id="downloadTranscriptBtn">STT 텍스트 다운로드</button>
-      </div>
 
       <div class="status-line">
         <span class="dot" id="recDot"></span>
@@ -152,7 +170,10 @@
   </div>
 
   <section class="card">
-    <h2 class="card-title">STT 변환 텍스트</h2>
+    <div class="card-header-row">
+      <h2 class="card-title">녹음 텍스트 변환 내용</h2>
+      <button class="btn-link" id="downloadTranscriptBtn">녹음 텍스트파일 다운로드</button>
+    </div>
     <div class="field">
       <textarea id="transcriptBox" placeholder="녹음 또는 파일 업로드 시 텍스트가 여기에 표시됩니다. 직접 수정할 수 있습니다."></textarea>
     </div>
@@ -600,7 +621,7 @@
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || '게시 중 오류가 발생했습니다.');
-      publishStatus.innerHTML = '게시 완료! <a class="result-link" href="' + data.url + '" target="_blank">페이지 열기</a>';
+      publishStatus.innerHTML = '게시 완료! <a class="result-link" href="' + data.url + '" target="_blank">게시된 페이지 바로가기</a>';
       publishStatus.className = 'status-msg ok';
     } catch (err) {
       publishStatus.textContent = '오류: ' + err.message;
