@@ -6,8 +6,9 @@
 // 서비스 계정 키 방식(@google-cloud/speech) 대신, API 키 기반 REST 호출만 사용합니다.
 // -> iam.disableServiceAccountKeyCreation 조직 정책이 걸려 있어도 동작합니다.
 //
-// 화자 분리(diarization)를 활성화해서, 가능한 경우 "화자 1: ...", "화자 2: ..." 형태로
-// 화자가 구분된 텍스트를 반환합니다. 화자 정보가 없으면 기존처럼 전체 텍스트만 합쳐서 반환합니다.
+// 화자 분리(diarization)를 활성화하되, 실제로 감지된 화자가 2명 이상일 때만
+// "화자 1: ...", "화자 2: ..." 라벨을 붙입니다. 전부 한 명으로 감지되거나
+// 화자 정보가 없으면 라벨 없이 일반 텍스트만 반환합니다.
 
 // speakerTag(또는 speakerLabel/speaker_label) 값을 정규화합니다.
 // "speaker_1" 같은 접두사가 붙어 오는 경우도 처리합니다. 값이 없으면 null.
@@ -25,19 +26,8 @@ function normalizeSpeakerTag(wordInfo) {
   return String(tag).replace(/^speaker_/i, "");
 }
 
-// 화자 분리된 단어 토큰들을 하나의 자연스러운 문장으로 정리합니다.
-// Google STT가 한국어 음절 경계에 붙이는 "▁" 문자를 공백으로 치환합니다.
-function cleanDiarizedText(tokens) {
-  const joined = tokens.join("");
-
-  return joined
-    .replace(/▁/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-// speakerTag가 전혀 없어 fallback으로 사용하는 일반 transcript도
-// "화자 undefined:" 문구나 "▁" 문자가 섞여 나오지 않도록 정리합니다.
+// "화자 undefined:" 문구와 "▁" 문자, 중복 공백을 정리합니다.
+// speakerTag가 없어 사용하는 fallback transcript에도 동일하게 적용합니다.
 function cleanPlainTranscript(text) {
   return String(text || "")
     .replace(/화자 undefined:\s*/g, "")
@@ -46,23 +36,41 @@ function cleanPlainTranscript(text) {
     .trim();
 }
 
-// 화자 분리 결과가 있으면 "화자 N: ..." 형식으로, 없으면 기존처럼 전체 텍스트를 합쳐서 반환합니다.
-// speakerTag가 없는 단어는 절대 사용하지 않으므로 "화자 undefined:"는 생기지 않습니다.
+function cleanDiarizedText(tokens) {
+  return cleanPlainTranscript(tokens.join(""));
+}
+
+// 화자 분리 결과가 있고 실제 감지된 화자가 2명 이상일 때만 "화자 N: ..." 형식으로,
+// 그 외에는 일반 텍스트(fallback)를 반환합니다.
 function buildSpeakerTranscript(results) {
   const resultWithWords = [...(results || [])]
     .reverse()
     .find((result) => result.alternatives?.[0]?.words?.length);
 
   const words = resultWithWords?.alternatives?.[0]?.words || [];
+
+  const fallbackTranscript = cleanPlainTranscript(
+    (results || [])
+      .map((result) => result.alternatives?.[0]?.transcript || "")
+      .filter(Boolean)
+      .join("\n")
+  );
+
   const taggedWords = words.filter((wordInfo) => normalizeSpeakerTag(wordInfo));
 
   if (!taggedWords.length) {
-    return cleanPlainTranscript(
-      (results || [])
-        .map((result) => result.alternatives?.[0]?.transcript || "")
-        .filter(Boolean)
-        .join("\n")
-    );
+    return fallbackTranscript;
+  }
+
+  const uniqueSpeakers = new Set(
+    taggedWords
+      .map((wordInfo) => normalizeSpeakerTag(wordInfo))
+      .filter(Boolean)
+  );
+
+  // 실제 감지된 화자가 1명뿐이면 화자 라벨을 붙이지 않음
+  if (uniqueSpeakers.size < 2) {
+    return fallbackTranscript || cleanDiarizedText(taggedWords.map((wordInfo) => wordInfo.word || ""));
   }
 
   const lines = [];
@@ -90,11 +98,11 @@ function buildSpeakerTranscript(results) {
     if (text) lines.push(`화자 ${currentSpeaker}: ${text}`);
   }
 
-  return lines.join("\n");
+  return lines.join("\n").trim() || fallbackTranscript;
 }
 
 export default async function handler(req, res) {
-  console.log("TRANSCRIBE_VERSION: diarization-clean-v3");
+  console.log("TRANSCRIBE_VERSION: diarization-smart-fallback-v1");
 
   if (req.method !== "POST") {
     return res.status(405).json({ error: "POST 요청만 허용됩니다." });
@@ -150,7 +158,7 @@ export default async function handler(req, res) {
             diarizationConfig: {
               enableSpeakerDiarization: true,
               minSpeakerCount: Number(minSpeakerCount) || 2,
-              maxSpeakerCount: Number(maxSpeakerCount) || 6,
+              maxSpeakerCount: Number(maxSpeakerCount) || 4,
             },
           },
           audio: {
