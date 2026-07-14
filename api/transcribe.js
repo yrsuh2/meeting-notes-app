@@ -1,5 +1,6 @@
 // POST /api/transcribe
-// body: { audioBase64: string, encoding?: string, sampleRateHertz?: number, languageCode?: string }
+// body: { audioBase64: string, encoding?: string, sampleRateHertz?: number, languageCode?: string,
+//         minSpeakerCount?: number, maxSpeakerCount?: number }
 // 필요한 환경변수: GOOGLE_API_KEY (Google Cloud Speech-to-Text REST API용 API 키)
 //
 // 서비스 계정 키 방식(@google-cloud/speech) 대신, API 키 기반 REST 호출만 사용합니다.
@@ -8,48 +9,93 @@
 // 화자 분리(diarization)를 활성화해서, 가능한 경우 "화자 1: ...", "화자 2: ..." 형태로
 // 화자가 구분된 텍스트를 반환합니다. 화자 정보가 없으면 기존처럼 전체 텍스트만 합쳐서 반환합니다.
 
-// data.results 전체에서 words 배열(각 단어의 speakerTag 포함)을 모아
-// "화자 N: ..." 형식의 텍스트로 변환합니다. 화자 정보가 없으면 null을 반환합니다.
-function buildDiarizedTranscript(results) {
-  let allWords = [];
-  for (const result of results) {
-    const alt = result.alternatives && result.alternatives[0];
-    if (alt && Array.isArray(alt.words) && alt.words.length > 0) {
-      allWords = allWords.concat(alt.words);
-    }
+// speakerTag(또는 speakerLabel/speaker_label) 값을 정규화합니다.
+// "speaker_1" 같은 접두사가 붙어 오는 경우도 처리합니다. 값이 없으면 null.
+function normalizeSpeakerTag(wordInfo) {
+  const tag =
+    wordInfo.speakerTag ??
+    wordInfo.speakerLabel ??
+    wordInfo.speaker_label ??
+    null;
+
+  if (tag === null || tag === undefined || tag === "") {
+    return null;
   }
 
-  const hasSpeakerTags = allWords.some(
-    (w) => w.speakerTag !== undefined && w.speakerTag !== null
-  );
-  if (allWords.length === 0 || !hasSpeakerTags) {
-    return null;
+  return String(tag).replace(/^speaker_/i, "");
+}
+
+// 화자 분리된 단어 토큰들을 하나의 자연스러운 문장으로 정리합니다.
+// Google STT가 한국어 음절 경계에 붙이는 "▁" 문자를 공백으로 치환합니다.
+function cleanDiarizedText(tokens) {
+  const joined = tokens.join("");
+
+  return joined
+    .replace(/▁/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+// speakerTag가 전혀 없어 fallback으로 사용하는 일반 transcript도
+// "화자 undefined:" 문구나 "▁" 문자가 섞여 나오지 않도록 정리합니다.
+function cleanPlainTranscript(text) {
+  return String(text || "")
+    .replace(/화자 undefined:\s*/g, "")
+    .replace(/▁/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+// 화자 분리 결과가 있으면 "화자 N: ..." 형식으로, 없으면 기존처럼 전체 텍스트를 합쳐서 반환합니다.
+// speakerTag가 없는 단어는 절대 사용하지 않으므로 "화자 undefined:"는 생기지 않습니다.
+function buildSpeakerTranscript(results) {
+  const resultWithWords = [...(results || [])]
+    .reverse()
+    .find((result) => result.alternatives?.[0]?.words?.length);
+
+  const words = resultWithWords?.alternatives?.[0]?.words || [];
+  const taggedWords = words.filter((wordInfo) => normalizeSpeakerTag(wordInfo));
+
+  if (!taggedWords.length) {
+    return cleanPlainTranscript(
+      (results || [])
+        .map((result) => result.alternatives?.[0]?.transcript || "")
+        .filter(Boolean)
+        .join("\n")
+    );
   }
 
   const lines = [];
   let currentSpeaker = null;
-  let currentWords = [];
+  let currentTokens = [];
 
-  for (const w of allWords) {
-    const tag = w.speakerTag;
-    if (tag !== currentSpeaker) {
-      if (currentWords.length > 0) {
-        lines.push(`화자 ${currentSpeaker}: ${currentWords.join(' ')}`);
-      }
-      currentSpeaker = tag;
-      currentWords = [w.word];
-    } else {
-      currentWords.push(w.word);
+  for (const wordInfo of taggedWords) {
+    const speakerTag = normalizeSpeakerTag(wordInfo);
+    const word = wordInfo.word || "";
+
+    if (!speakerTag || !word) continue;
+
+    if (currentSpeaker !== null && speakerTag !== currentSpeaker) {
+      const text = cleanDiarizedText(currentTokens);
+      if (text) lines.push(`화자 ${currentSpeaker}: ${text}`);
+      currentTokens = [];
     }
-  }
-  if (currentWords.length > 0) {
-    lines.push(`화자 ${currentSpeaker}: ${currentWords.join(' ')}`);
+
+    currentSpeaker = speakerTag;
+    currentTokens.push(word);
   }
 
-  return lines.join('\n');
+  if (currentTokens.length) {
+    const text = cleanDiarizedText(currentTokens);
+    if (text) lines.push(`화자 ${currentSpeaker}: ${text}`);
+  }
+
+  return lines.join("\n");
 }
 
 export default async function handler(req, res) {
+  console.log("TRANSCRIBE_VERSION: diarization-clean-v3");
+
   if (req.method !== "POST") {
     return res.status(405).json({ error: "POST 요청만 허용됩니다." });
   }
@@ -70,6 +116,8 @@ export default async function handler(req, res) {
       encoding = "LINEAR16",
       sampleRateHertz = 16000,
       languageCode = "ko-KR",
+      minSpeakerCount,
+      maxSpeakerCount,
     } = body || {};
 
     if (!audioBase64) {
@@ -101,8 +149,8 @@ export default async function handler(req, res) {
             audioChannelCount: 1,
             diarizationConfig: {
               enableSpeakerDiarization: true,
-              minSpeakerCount: 2,
-              maxSpeakerCount: 6,
+              minSpeakerCount: Number(minSpeakerCount) || 2,
+              maxSpeakerCount: Number(maxSpeakerCount) || 6,
             },
           },
           audio: {
@@ -123,15 +171,7 @@ export default async function handler(req, res) {
     }
 
     const results = data.results || [];
-    const diarizedTranscript = buildDiarizedTranscript(results);
-
-    const transcript =
-      diarizedTranscript !== null
-        ? diarizedTranscript
-        : results
-            .map((result) => result.alternatives?.[0]?.transcript || "")
-            .filter(Boolean)
-            .join("\n");
+    const transcript = buildSpeakerTranscript(results);
 
     return res.status(200).json({ transcript });
   } catch (error) {
